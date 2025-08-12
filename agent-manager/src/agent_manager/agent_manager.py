@@ -11,7 +11,7 @@ def toolgroups(agent):
     toolgroups = []
     if "mcp_servers" in agent:
         for mcp_server in agent["mcp_servers"]:
-            toolgroups.append("mcp::" + mcp_server)
+            toolgroups.append("mcp::" + mcp_server["name"])
 
     if "knowledge_bases" in agent:
         toolgroups.append(
@@ -41,11 +41,29 @@ class AgentManager:
         else:
             logging.debug("Already connected to LlamaStack")
 
+    def register_mcp_toolgroups(self, agent):
+        """Register MCP servers as toolgroups before creating agents"""
+        if "mcp_servers" in agent:
+            for mcp_server in agent["mcp_servers"]:
+                toolgroup_id = f"mcp::{mcp_server['name']}"
+                logging.debug(f"Registering toolgroup: {toolgroup_id}")
+                try:
+                    self._client.toolgroups.register(
+                        toolgroup_id=toolgroup_id,
+                        provider_id="model-context-protocol",
+                        mcp_config={"endpoint": mcp_server["url"]},
+                        args={},
+                    )
+                    logging.info(f"Successfully registered toolgroup: {toolgroup_id}")
+                except Exception as e:
+                    logging.error(f"Failed to register toolgroup {toolgroup_id}: {e}")
+
     def create_agents(self):
         if self._client is None:
             self.connect_to_llama_stack()
         logging.debug("Creating agents")
         for agent in self._config["agents"]:
+            self.register_mcp_toolgroups(agent)
             self.create_agent(agent)
 
     def create_agent(self, agent: dict):
