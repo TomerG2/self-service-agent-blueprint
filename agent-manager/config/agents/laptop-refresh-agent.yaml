@@ -15,6 +15,6 @@ output_shields: []
 max_infer_iters: 10
 mcp_servers:
   - name: "employee-info"
-    url: "http://self-service-agent-employee-info-mcp:8000/mcp/"
+    url: "http://self-service-agent-employee-info:8000/mcp/"
     transport: "http"
 knowledge_bases: []

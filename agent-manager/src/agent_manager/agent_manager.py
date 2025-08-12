@@ -51,7 +51,7 @@ class AgentManager:
                     self._client.toolgroups.register(
                         toolgroup_id=toolgroup_id,
                         provider_id="model-context-protocol",
-                        mcp_config={"endpoint": mcp_server["url"]},
+                        mcp_endpoint={"uri": mcp_server["url"]},
                         args={},
                     )
                     logging.info(f"Successfully registered toolgroup: {toolgroup_id}")
