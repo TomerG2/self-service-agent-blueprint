@@ -95,3 +95,24 @@ seed:
     username: kubeadmin
     # email: ""
 
+# Employee Info MCP Server configuration
+employeeInfo:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: quay.io/ecosystem-appeng/self-service-agent-employee-info-mcp
+
+    pullPolicy: Always
+    # tag: "1.0.0"
+  service:
+    type: ClusterIP
+    port: 8000
+  resources: {}
+  # resources:
+  #   limits:
+  #     cpu: 100m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 50m
+  #     memory: 64Mi
+
