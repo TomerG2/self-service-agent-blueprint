@@ -862,7 +862,6 @@ By default, the system uses mock ServiceNow data. To integrate with your actual 
 export SERVICENOW_INSTANCE_URL=https://your-instance.service-now.com
 export SERVICENOW_USERNAME=your-servicenow-username
 export SERVICENOW_PASSWORD=your-servicenow-password
-export USE_REAL_SERVICENOW=true
 
 # Upgrade Helm deployment
 make helm-upgrade NAMESPACE=$NAMESPACE

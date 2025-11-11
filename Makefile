@@ -54,7 +54,6 @@ SLACK_ENABLED := $(if $(and $(SLACK_BOT_TOKEN),$(SLACK_SIGNING_SECRET)),true,fal
 # ServiceNow Configuration
 SERVICENOW_INSTANCE_URL ?=
 SERVICENOW_API_KEY ?=
-USE_REAL_SERVICENOW ?= false
 SERVICENOW_LAPTOP_REFRESH_ID ?=
 
 # Evaluation Configuration
@@ -242,7 +241,6 @@ help:
 	@echo "    SERVICENOW_INSTANCE_URL           - ServiceNow instance URL (e.g., https://dev12345.service-now.com)"
 	@echo "    SERVICENOW_API_KEY                 - ServiceNow API key (required)"
 	@echo "    SERVICENOW_API_KEY_HEADER         - Custom header name (default: x-sn-apikey)"
-	@echo "    USE_REAL_SERVICENOW               - Use real ServiceNow API vs mock data (default: false)"
 	@echo "    SERVICENOW_LAPTOP_REFRESH_ID      - ServiceNow catalog item ID for laptop refresh requests (required)"
 	@echo ""
 	@echo "  Request Management Layer:"
@@ -875,18 +873,14 @@ define helm_install_common
 	@$(eval GENERIC_ARGS := $(helm_generic_args))
 	@$(eval REPLICA_COUNT_ARGS := $(helm_replica_count_args))
 
-	@if [ "$(USE_REAL_SERVICENOW)" = "true" ]; then \
-		echo "Creating ServiceNow credentials secret..."; \
-		if [ -n "$$SERVICENOW_INSTANCE_URL" ] || [ -n "$$SERVICENOW_API_KEY" ]; then \
-			kubectl create secret generic $(MAIN_CHART_NAME)-servicenow-credentials \
-				--from-literal=servicenow-instance-url="$${SERVICENOW_INSTANCE_URL:-}" \
-				--from-literal=servicenow-api-key="$${SERVICENOW_API_KEY:-}" \
-				-n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -; \
-		else \
-			echo "⚠️  WARNING: USE_REAL_SERVICENOW=true but ServiceNow credentials not provided"; \
-		fi; \
+	@echo "Creating ServiceNow credentials secret..."
+	@if [ -n "$$SERVICENOW_INSTANCE_URL" ] || [ -n "$$SERVICENOW_API_KEY" ]; then \
+		kubectl create secret generic $(MAIN_CHART_NAME)-servicenow-credentials \
+			--from-literal=servicenow-instance-url="$${SERVICENOW_INSTANCE_URL:-}" \
+			--from-literal=servicenow-api-key="$${SERVICENOW_API_KEY:-}" \
+			-n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -; \
 	else \
-		echo "Skipping ServiceNow credentials secret (USE_REAL_SERVICENOW=false)"; \
+		echo "⚠️  WARNING: ServiceNow credentials not provided"; \
 	fi
 
 	@echo "Cleaning up any existing jobs..."
@@ -906,12 +900,9 @@ define helm_install_common
 		--set image.registry=$(REGISTRY) \
 		--set mcp-servers.mcp-servers.self-service-agent-snow.image.repository=$(REGISTRY)/self-service-agent-snow-mcp \
 		--set mcp-servers.mcp-servers.self-service-agent-snow.image.tag=$(VERSION) \
-		--set-string mcp-servers.mcp-servers.self-service-agent-snow.env.USE_REAL_SERVICENOW="$(USE_REAL_SERVICENOW)" \
 		--set-string mcp-servers.mcp-servers.self-service-agent-snow.env.SERVICENOW_LAPTOP_REFRESH_ID="$(SERVICENOW_LAPTOP_REFRESH_ID)" \
-		$(if $(filter true,$(USE_REAL_SERVICENOW)),\
-			--set mcp-servers.mcp-servers.self-service-agent-snow.envSecrets.SERVICENOW_INSTANCE_URL.name=$(MAIN_CHART_NAME)-servicenow-credentials \
-			--set mcp-servers.mcp-servers.self-service-agent-snow.envSecrets.SERVICENOW_INSTANCE_URL.key=servicenow-instance-url \
-		) \
+		--set mcp-servers.mcp-servers.self-service-agent-snow.envSecrets.SERVICENOW_INSTANCE_URL.name=$(MAIN_CHART_NAME)-servicenow-credentials \
+		--set mcp-servers.mcp-servers.self-service-agent-snow.envSecrets.SERVICENOW_INSTANCE_URL.key=servicenow-instance-url \
 		$(REQUEST_MANAGEMENT_ARGS) \
 		$(LOG_LEVEL_ARGS) \
 		$(GENERIC_ARGS) \
