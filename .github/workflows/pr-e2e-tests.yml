@@ -52,6 +52,68 @@ jobs:
         run: |
           kubectl config set-context --current --namespace=test
 
+      - name: Verify mock ServiceNow service is ready
+        shell: bash
+        run: |
+          echo "Waiting for mock ServiceNow service to be ready..."
+
+          # Get the service name dynamically
+          SERVICE_NAME=$(kubectl get services -l app.kubernetes.io/component=mock-servicenow -o jsonpath='{.items[0].metadata.name}')
+          if [ -z "$SERVICE_NAME" ]; then
+            echo "❌ Mock ServiceNow service not found"
+            kubectl get services -l app.kubernetes.io/component=mock-servicenow
+            exit 1
+          fi
+          echo "Found mock ServiceNow service: $SERVICE_NAME"
+
+          # Wait for the service endpoint to be ready
+          for i in {1..30}; do
+            if kubectl run --rm -i --restart=Never test-servicenow-$$ --image=curlimages/curl:latest --timeout=10s -- \
+               curl -f http://$SERVICE_NAME:8080/health; then
+              echo "✅ Mock ServiceNow service is healthy"
+              break
+            else
+              echo "⏳ Attempt $i/30: Mock ServiceNow service not ready yet, waiting 10s..."
+              if [ $i -eq 30 ]; then
+                echo "❌ Mock ServiceNow service failed to become ready after 5 minutes"
+                echo "Service status:"
+                kubectl get service $SERVICE_NAME
+                echo "Pod status:"
+                kubectl get pods -l app.kubernetes.io/component=mock-servicenow
+                echo "Pod logs:"
+                kubectl logs -l app.kubernetes.io/component=mock-servicenow --tail=50
+                exit 1
+              fi
+              sleep 10
+            fi
+          done
+
+      - name: Verify MCP server can connect to mock ServiceNow
+        shell: bash
+        run: |
+          echo "Testing MCP server connection to mock ServiceNow..."
+
+          # Get the MCP server pod
+          MCP_POD=$(kubectl get pods -l app.kubernetes.io/name=self-service-agent-snow -o jsonpath='{.items[0].metadata.name}')
+          if [ -z "$MCP_POD" ]; then
+            echo "❌ MCP server pod not found"
+            kubectl get pods -l app.kubernetes.io/name=self-service-agent-snow
+            exit 1
+          fi
+          echo "Found MCP server pod: $MCP_POD"
+
+          # Test ServiceNow connectivity from within the MCP pod
+          echo "Testing connectivity to mock ServiceNow from MCP server pod..."
+          kubectl exec $MCP_POD -- curl -f -m 10 http://self-service-agent-mock-servicenow:8080/health || {
+            echo "❌ MCP server cannot connect to mock ServiceNow service"
+            echo "MCP Pod logs:"
+            kubectl logs $MCP_POD --tail=50
+            echo "Mock ServiceNow pod logs:"
+            kubectl logs -l app.kubernetes.io/component=mock-servicenow --tail=50
+            exit 1
+          }
+          echo "✅ MCP server can successfully connect to mock ServiceNow service"
+
       - name: Install evaluations dependencies
         shell: bash
         run: |
