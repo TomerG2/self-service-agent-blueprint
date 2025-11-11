@@ -370,10 +370,12 @@ build-mock-eventing-image: check-lockfile-mock-eventing check-lockfile-shared-mo
 
 .PHONY: build-mock-servicenow-image
 build-mock-servicenow-image: check-lockfile-mock-servicenow
-	@echo "Building mock ServiceNow server image: $(MOCK_SERVICENOW_IMG)"
+	@echo "Building mock ServiceNow server image using adapted template: $(MOCK_SERVICENOW_IMG)"
 	$(CONTAINER_TOOL) build -t $(MOCK_SERVICENOW_IMG) --platform=$(ARCH) \
-		-f mock-service-now/Dockerfile \
-		mock-service-now
+		-f mock-service-now/Containerfile \
+		--build-arg SERVICE_NAME=mock-service-now \
+		--build-arg MODULE_NAME=mock_servicenow.server \
+		.
 	@echo "Successfully built mock ServiceNow server image: $(MOCK_SERVICENOW_IMG)"
 
 # Push container images

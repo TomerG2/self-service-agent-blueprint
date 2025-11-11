@@ -11,7 +11,7 @@ This mock server implements the same REST API endpoints as ServiceNow, allowing 
 - **API Compatibility**: Implements ServiceNow REST API endpoints with identical request/response formats
 - **Authentication**: Supports ServiceNow API key authentication via `x-sn-apikey` header
 - **Mock Data**: Pre-populated with test employee and laptop data
-- **Docker Ready**: Containerized for easy deployment in Kubernetes environments
+- **Container Ready**: Containerized using standardized template for easy deployment in Kubernetes environments
 - **FastAPI Based**: Built with FastAPI for performance and automatic API documentation
 
 ## Supported Endpoints
@@ -55,10 +55,19 @@ cd mock-service-now
 uv run uvicorn src.mock_servicenow.server:app --host 0.0.0.0 --port 8080
 ```
 
-### Docker
+### Container Build
 ```bash
-docker build -t mock-servicenow .
-docker run -p 8080:8080 mock-servicenow
+# Build using the standardized template from project root
+podman build -f mock-service-now/Containerfile \
+  --build-arg SERVICE_NAME=mock-service-now \
+  --build-arg MODULE_NAME=mock_servicenow.server \
+  -t mock-servicenow .
+
+# Or use the Makefile from project root
+make build-mock-servicenow-image
+
+# Run the container
+podman run -p 8080:8080 mock-servicenow
 ```
 
 ### With MCP Server
