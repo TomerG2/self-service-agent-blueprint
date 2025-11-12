@@ -1,4 +1,4 @@
-"""Mock data for ServiceNow ticket management."""
+"""Utility functions for ServiceNow operations."""
 
 from datetime import datetime
 
