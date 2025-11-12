@@ -435,7 +435,7 @@ lint-global-tools:
 .PHONY: check-logging
 check-logging:
 	@echo "Checking logging patterns..."
-	@python scripts/check_logging_patterns.py
+	@uv run python scripts/check_logging_patterns.py
 	@echo "✅ Logging pattern checks completed"
 
 # Per-directory mypy linting (project-specific configurations)

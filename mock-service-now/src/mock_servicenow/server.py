@@ -1,12 +1,12 @@
 """Mock ServiceNow server implementation."""
 
-import logging
 import os
 from typing import Any, Dict, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Security
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
+from shared_models import configure_logging
 
 from .data import (
     create_laptop_refresh_request,
@@ -15,11 +15,7 @@ from .data import (
 )
 
 # Configure logging
-logging.basicConfig(
-    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper()),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = configure_logging(__name__)
 
 # FastAPI app
 app = FastAPI(
@@ -38,7 +34,7 @@ def get_api_key(api_key: Optional[str] = Security(api_key_header)) -> Optional[s
     """Validate API key (optional validation for mock server)."""
     # For mock server, we accept any API key or no API key
     # In a real implementation, you would validate against actual API keys
-    logger.debug(f"API key received: {'***' if api_key else 'None'}")
+    logger.debug("API key received", api_key_status="***" if api_key else "None")
     return api_key
 
 
@@ -80,8 +76,8 @@ async def order_laptop_refresh(
 
     This endpoint mimics ServiceNow's service catalog order_now API.
     """
-    logger.info(f"Creating laptop refresh request for item {laptop_refresh_id}")
-    logger.debug(f"Request variables: {order_request.variables}")
+    logger.info("Creating laptop refresh request", laptop_refresh_id=laptop_refresh_id)
+    logger.debug("Request variables", variables=order_request.variables)
 
     # Validate required variables
     if "laptop_choices" not in order_request.variables:
@@ -106,14 +102,15 @@ async def order_laptop_refresh(
         )
 
         logger.info(
-            f"Successfully created laptop refresh request {result['result']['request_number']} "
-            f"for user {who_is_this_request_for}"
+            "Successfully created laptop refresh request",
+            request_number=result["result"]["request_number"],
+            user=who_is_this_request_for,
         )
 
         return result
 
     except Exception as e:
-        logger.error(f"Error creating laptop refresh request: {e}")
+        logger.error("Error creating laptop refresh request", error=str(e))
         raise HTTPException(status_code=500, detail=f"Error creating request: {str(e)}")
 
 
@@ -129,7 +126,7 @@ async def get_users(
     """
     # Parse query parameters
     query_params = dict(request.query_params)
-    logger.debug(f"User query parameters: {query_params}")
+    logger.debug("User query parameters", query_params=query_params)
 
     sysparm_query = query_params.get("sysparm_query", "")
     sysparm_limit = int(query_params.get("sysparm_limit", "1"))
@@ -146,10 +143,10 @@ async def get_users(
     # Find user by email
     user = find_user_by_email(email)
     if not user:
-        logger.info(f"User not found for email: {email}")
+        logger.info("User not found for email", email=email)
         return {"result": []}
 
-    logger.info(f"Found user for email {email}: {user['name']}")
+    logger.info("Found user for email", email=email, user_name=user["name"])
 
     # Return ServiceNow-style response
     result = [user] if sysparm_limit >= 1 else []
@@ -168,7 +165,7 @@ async def get_computers(
     """
     # Parse query parameters
     query_params = dict(request.query_params)
-    logger.debug(f"Computer query parameters: {query_params}")
+    logger.debug("Computer query parameters", query_params=query_params)
 
     sysparm_query = query_params.get("sysparm_query", "")
 
@@ -184,7 +181,11 @@ async def get_computers(
     # Find computers for user
     computers = find_computers_by_user_sys_id(user_sys_id)
 
-    logger.info(f"Found {len(computers)} computer(s) for user sys_id: {user_sys_id}")
+    logger.info(
+        "Found computers for user",
+        computer_count=len(computers),
+        user_sys_id=user_sys_id,
+    )
 
     # Return ServiceNow-style response
     return {"result": computers}
@@ -193,7 +194,9 @@ async def get_computers(
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception) -> HTTPException:
     """Handle unexpected exceptions."""
-    logger.error(f"Unexpected error in {request.method} {request.url}: {exc}")
+    logger.error(
+        "Unexpected error", method=request.method, url=str(request.url), error=str(exc)
+    )
     return HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -203,7 +206,7 @@ if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8080"))
 
-    logger.info(f"Starting Mock ServiceNow server on {host}:{port}")
+    logger.info("Starting Mock ServiceNow server", host=host, port=port)
 
     uvicorn.run(
         "mock_servicenow.server:app",

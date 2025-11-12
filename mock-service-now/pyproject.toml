@@ -25,6 +25,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "requests>=2.31.0",
     "mock-employee-data",
+    "self-service-agent-shared-models",
 ]
 
 [project.optional-dependencies]
@@ -96,7 +97,7 @@ warn_unreachable = true
 strict_equality = true
 
 # Configure mypy to use source directories for local packages
-mypy_path = "../mock-employee-data/src"
+mypy_path = "../mock-employee-data/src:../shared-models/src"
 
 [tool.ruff]
 target-version = "py312"
@@ -128,3 +129,4 @@ dev = [
 
 [tool.uv.sources]
 mock-employee-data = { path = "../mock-employee-data" }
+self-service-agent-shared-models = { path = "../shared-models" }

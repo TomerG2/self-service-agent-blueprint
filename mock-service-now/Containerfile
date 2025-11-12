@@ -20,6 +20,7 @@ COPY ${SERVICE_NAME}/README.md ./${SERVICE_NAME}/
 
 # Copy mock-employee-data dependency
 COPY mock-employee-data/ ./mock-employee-data/
+COPY shared-models/ ./shared-models/
 
 WORKDIR /app/${SERVICE_NAME}
 
