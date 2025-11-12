@@ -1,7 +1,6 @@
 """Mock data for ServiceNow ticket management."""
 
 from datetime import datetime
-from typing import Any
 
 
 def _calculate_laptop_age(purchase_date_str: str) -> str:
@@ -40,41 +39,6 @@ def _calculate_laptop_age(purchase_date_str: str) -> str:
 
     except (ValueError, TypeError):
         return "Unable to calculate age (invalid date format)"
-
-
-def generate_ticket_number() -> str:
-    """Generate a mock ServiceNow ticket number."""
-    import random
-
-    # Generate 7-digit number to match ServiceNow format (e.g., REQ0010037)
-    return f"REQ{random.randint(1000000, 9999999):07d}"
-
-
-def create_laptop_refresh_ticket(
-    authoritative_user_id: str,
-    employee_name: str,
-    business_justification: str,
-    preferred_model: str,
-) -> str:
-    """Create a mock laptop refresh ticket and return formatted response.
-
-    Args:
-        authoritative_user_id: Authoritative user ID from request headers (email address)
-        employee_name: Employee's full name
-        business_justification: Business reason for laptop refresh
-        preferred_model: ServiceNow laptop model code
-
-    Returns:
-        Formatted ticket details string matching real ServiceNow response format
-    """
-    ticket_number = generate_ticket_number()
-
-    # Look up employee to get their employee_id for sys_id
-    employee_data = find_employee_by_authoritative_user_id(authoritative_user_id)
-    employee_id = employee_data["employee_id"]
-
-    # Return format matching real ServiceNow response
-    return f"{ticket_number} opened for employee {authoritative_user_id}. System ID: {employee_id}"
 
 
 MOCK_EMPLOYEE_DATA = {
@@ -255,59 +219,3 @@ MOCK_EMPLOYEE_DATA = {
         "warranty_status": "Expired",
     },
 }
-
-
-def find_employee_by_authoritative_user_id(
-    authoritative_user_id: str,
-) -> dict[str, Any]:
-    """Find employee by email from authoritative user ID. Currently only
-       email is supported for authoritative user id
-
-    Args:
-        authoritative_user_id: the authoritative user id
-
-    Returns:
-        Employee data dictionary if found
-
-    Raises:
-        ValueError: If email is not found or is empty
-    """
-    if not authoritative_user_id:
-        raise ValueError("Authoritative user ID cannot be empty")
-
-    employee_data = MOCK_EMPLOYEE_DATA.get(authoritative_user_id.lower())
-    if employee_data:
-        return employee_data
-
-    # If not found, provide helpful error message
-    available_authoritative_user_ids = list(MOCK_EMPLOYEE_DATA.keys())
-    raise ValueError(
-        f"Authoritative user ID '{authoritative_user_id}' not found. "
-        f"Available authoritative user IDs: {', '.join(available_authoritative_user_ids)}"
-    )
-
-
-def format_laptop_info(employee_data: dict[str, Any]) -> str:
-    """Format laptop information for display.
-
-    Args:
-        employee_data: Employee data dictionary
-
-    Returns:
-        Formatted laptop information string (without employee ID)
-    """
-    # Calculate laptop age
-    laptop_age = _calculate_laptop_age(employee_data["purchase_date"])
-
-    laptop_info = f"""
-    Employee Name: {employee_data["name"]}
-    Employee Location: {employee_data["location"]}
-    Laptop Model: {employee_data["laptop_model"]}
-    Laptop Serial Number: {employee_data["laptop_serial_number"]}
-    Laptop Purchase Date: {employee_data["purchase_date"]}
-    Laptop Age: {laptop_age}
-    Laptop Warranty Expiry Date: {employee_data["warranty_expiry"]}
-    Laptop Warranty: {employee_data["warranty_status"]}
-    """
-
-    return laptop_info
