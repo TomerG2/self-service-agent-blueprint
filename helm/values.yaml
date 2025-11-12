@@ -223,6 +223,28 @@ mcp-servers:
 llm-service:
   enabled: true
 
+# Mock ServiceNow Server Configuration (for testing and development)
+mockServiceNow:
+  enabled: true  # Default to enabled for development and testing
+  replicas: 1
+  logLevel: "INFO"
+  uvicornWorkers: 1  # Single worker sufficient for mock server
+  resources: {}
+  # Health check configuration
+  healthChecks:
+    livenessProbe:
+      initialDelaySeconds: 15
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      initialDelaySeconds: 5
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+
 # Request Management Layer Configuration
 requestManagement:
   enabled: true
@@ -264,28 +286,6 @@ requestManagement:
           timeoutSeconds: 5           # Longer timeout for slower dev nodes
           failureThreshold: 5         # More failures allowed for dev instability
           successThreshold: 1
-
-# Mock ServiceNow Server Configuration (for testing and development)
-mockServiceNow:
-  enabled: true  # Default to enabled for development and testing
-  replicas: 1
-  logLevel: "INFO"
-  uvicornWorkers: 1  # Single worker sufficient for mock server
-  resources: {}
-  # Health check configuration
-  healthChecks:
-    livenessProbe:
-      initialDelaySeconds: 15
-      periodSeconds: 30
-      timeoutSeconds: 5
-      failureThreshold: 3
-      successThreshold: 1
-    readinessProbe:
-      initialDelaySeconds: 5
-      periodSeconds: 15
-      timeoutSeconds: 5
-      failureThreshold: 3
-      successThreshold: 1
 
     # KnativeKafka configuration (automatically enabled when eventing is enabled)
     kafka:
