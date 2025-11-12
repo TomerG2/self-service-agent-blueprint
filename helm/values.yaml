@@ -205,8 +205,6 @@ mcp-servers:
       imagePullPolicy: Always
       env:
         MCP_TRANSPORT: "streamable-http"
-        SERVICENOW_INSTANCE_URL: "http://self-service-agent-mock-servicenow:8080"
-        SERVICENOW_LAPTOP_REFRESH_ID: "mock_laptop_refresh_id"
         # Number of uvicorn worker processes (stateless-http allows multiple workers)
         # Note: The mcp-servers chart doesn't auto-convert uvicornWorkers field to env var,
         # so we set it directly in the env section

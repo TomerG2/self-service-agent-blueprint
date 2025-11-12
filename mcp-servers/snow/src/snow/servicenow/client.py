@@ -52,13 +52,15 @@ class ServiceNowClient:
 
         Returns:
             ServerConfig: Configuration loaded with API token.
-
-        Raises:
-            ValueError: If required environment variables are missing.
         """
         instance_url = os.getenv("SERVICENOW_INSTANCE_URL")
         if not instance_url:
-            raise ValueError("SERVICENOW_INSTANCE_URL environment variable is required")
+            # Fall back to mock ServiceNow instance
+            instance_url = "http://self-service-agent-mock-servicenow:8080"
+            logger.info(
+                "SERVICENOW_INSTANCE_URL not set, using mock ServiceNow instance: %s",
+                instance_url,
+            )
 
         auth_config = AuthConfig(
             type=AuthType.API_KEY,
@@ -92,13 +94,11 @@ class ServiceNowClient:
         # Get laptop refresh ID from environment variable
         laptop_refresh_id = os.getenv("SERVICENOW_LAPTOP_REFRESH_ID")
         if not laptop_refresh_id:
-            logger.error(
-                "SERVICENOW_LAPTOP_REFRESH_ID environment variable is not set. "
-                "Please set it to the ServiceNow catalog item ID for laptop refresh requests."
-            )
-            raise ValueError(
-                "SERVICENOW_LAPTOP_REFRESH_ID environment variable is required but not set. "
-                "Please configure it in your deployment."
+            # Fall back to mock laptop refresh ID
+            laptop_refresh_id = "mock_laptop_refresh_id"
+            logger.info(
+                "SERVICENOW_LAPTOP_REFRESH_ID not set, using mock laptop refresh ID: %s",
+                laptop_refresh_id,
             )
         logger.info(
             "Using ServiceNow laptop refresh catalog item ID",
