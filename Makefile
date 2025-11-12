@@ -155,6 +155,8 @@ help:
 	@echo "  install-shared-models               - Install dependencies for shared models"
 	@echo "  install-shared-clients              - Install dependencies for shared clients"
 	@echo "  install-servicenow-bootstrap       - Install dependencies for ServiceNow automation scripts"
+	@echo "  install-mock-employee-data          - Install dependencies for mock employee data"
+	@echo "  install-mock-servicenow             - Install dependencies for mock ServiceNow"
 	@echo ""
 	@echo "Reinstall Commands:"
 	@echo "  reinstall-all                       - Force reinstall dependencies for all projects (uv sync --reinstall)"
@@ -166,6 +168,8 @@ help:
 	@echo "  reinstall-shared-models             - Force reinstall shared models dependencies"
 	@echo "  reinstall-shared-clients            - Force reinstall shared clients dependencies"
 	@echo "  reinstall-servicenow-bootstrap     - Force reinstall ServiceNow automation dependencies"
+	@echo "  reinstall-mock-employee-data        - Force reinstall mock employee data dependencies"
+	@echo "  reinstall-mock-servicenow           - Force reinstall mock ServiceNow dependencies"
 	@echo ""
 	@echo "Push Commands:"
 	@echo "  push-all-images                     - Push all container images to registry"
@@ -190,6 +194,8 @@ help:
 	@echo "  test-request-manager                - Run tests for request manager"
 	@echo "  test-shared-models                  - Run tests for shared models"
 	@echo "  test-servicenow-bootstrap          - Run tests for ServiceNow automation scripts"
+	@echo "  test-mock-employee-data            - Run tests for mock employee data"
+	@echo "  test-mock-servicenow               - Run tests for mock ServiceNow"
 	@echo "  test-short-resp-integration-request-mgr - Run short responses integration tests with Request Manager"
 	@echo "  test-long-resp-integration-request-mgr - Run long responses integration tests with Request Manager"
 	@echo "  test-long-concurrent-integration-request-mgr - Run long concurrent responses integration tests with Request Manager (concurrency=4)"
@@ -434,7 +440,7 @@ check-logging:
 
 # Per-directory mypy linting (project-specific configurations)
 .PHONY: lint-mypy-per-directory
-lint-mypy-per-directory: lint-shared-models lint-shared-clients lint-agent-service lint-request-manager lint-integration-dispatcher lint-mcp-snow lint-mock-eventing lint-tracing-config lint-evaluations lint-servicenow-bootstrap
+lint-mypy-per-directory: lint-shared-models lint-shared-clients lint-agent-service lint-request-manager lint-integration-dispatcher lint-mcp-snow lint-mock-eventing lint-tracing-config lint-evaluations lint-servicenow-bootstrap lint-mock-employee-data lint-mock-servicenow
 	@echo "✅ All mypy linting completed"
 
 # Common function for mypy linting
@@ -488,6 +494,14 @@ lint-evaluations:
 lint-servicenow-bootstrap:
 	$(call lint_mypy,scripts/servicenow-bootstrap)
 
+.PHONY: lint-mock-employee-data
+lint-mock-employee-data:
+	$(call lint_mypy,mock-employee-data)
+
+.PHONY: lint-mock-servicenow
+lint-mock-servicenow:
+	$(call lint_mypy,mock-service-now)
+
 
 .PHONY: format
 format:
@@ -499,7 +513,7 @@ format:
 
 # Install dependencies
 .PHONY: install-all
-install-all: install-shared-models install-shared-clients install-tracing-config install install-request-manager install-agent-service install-integration-dispatcher install-mcp-snow install-mock-eventing install-evaluations install-servicenow-bootstrap
+install-all: install-shared-models install-shared-clients install-tracing-config install install-request-manager install-agent-service install-integration-dispatcher install-mcp-snow install-mock-eventing install-mock-employee-data install-mock-servicenow install-evaluations install-servicenow-bootstrap
 	@echo "All dependencies installed successfully!"
 
 .PHONY: install-shared-models
@@ -528,7 +542,7 @@ reinstall:
 	@echo "All dependencies reinstalled with latest code!"
 
 .PHONY: reinstall-all
-reinstall-all: reinstall-shared-models reinstall-shared-clients reinstall reinstall-request-manager reinstall-agent-service reinstall-integration-dispatcher reinstall-mcp-snow reinstall-servicenow-bootstrap
+reinstall-all: reinstall-shared-models reinstall-shared-clients reinstall reinstall-request-manager reinstall-agent-service reinstall-integration-dispatcher reinstall-mcp-snow reinstall-mock-employee-data reinstall-mock-servicenow reinstall-servicenow-bootstrap
 	@echo "All project dependencies reinstalled successfully!"
 
 
@@ -574,6 +588,18 @@ reinstall-servicenow-bootstrap:
 	cd scripts/servicenow-bootstrap && uv sync --reinstall
 	@echo "ServiceNow automation dependencies reinstalled successfully!"
 
+.PHONY: reinstall-mock-employee-data
+reinstall-mock-employee-data:
+	@echo "Force reinstalling mock employee data dependencies..."
+	cd mock-employee-data && uv sync --reinstall
+	@echo "Mock employee data dependencies reinstalled successfully!"
+
+.PHONY: reinstall-mock-servicenow
+reinstall-mock-servicenow:
+	@echo "Force reinstalling mock ServiceNow dependencies..."
+	cd mock-service-now && uv sync --reinstall
+	@echo "Mock ServiceNow dependencies reinstalled successfully!"
+
 
 .PHONY: install-request-manager
 install-request-manager:
@@ -605,6 +631,18 @@ install-mock-eventing:
 	cd mock-eventing-service && uv sync
 	@echo "Mock eventing service dependencies installed successfully!"
 
+.PHONY: install-mock-employee-data
+install-mock-employee-data:
+	@echo "Installing mock employee data dependencies..."
+	cd mock-employee-data && uv sync
+	@echo "Mock employee data dependencies installed successfully!"
+
+.PHONY: install-mock-servicenow
+install-mock-servicenow:
+	@echo "Installing mock ServiceNow dependencies..."
+	cd mock-service-now && uv sync
+	@echo "Mock ServiceNow dependencies installed successfully!"
+
 .PHONY: install-tracing-config
 install-tracing-config:
 	@echo "Installing tracing-config dependencies..."
@@ -625,7 +663,7 @@ install-servicenow-bootstrap:
 
 # Test code
 .PHONY: test-all
-test-all: test-shared-models test-shared-clients test test-request-manager test-agent-service test-integration-dispatcher test-mcp-snow test-servicenow-bootstrap
+test-all: test-shared-models test-shared-clients test test-request-manager test-agent-service test-integration-dispatcher test-mcp-snow test-servicenow-bootstrap test-mock-employee-data test-mock-servicenow
 	@echo "All tests completed successfully!"
 
 # Lockfile management
@@ -826,6 +864,18 @@ test-servicenow-bootstrap:
 	@echo "Running ServiceNow automation tests..."
 	cd scripts/servicenow-bootstrap && uv run python -m pytest tests/ || echo "No tests found for ServiceNow automation"
 	@echo "ServiceNow automation tests completed successfully!"
+
+.PHONY: test-mock-employee-data
+test-mock-employee-data:
+	@echo "Running mock employee data tests..."
+	cd mock-employee-data && uv run python -m pytest tests/ || echo "No tests found for mock employee data"
+	@echo "Mock employee data tests completed successfully!"
+
+.PHONY: test-mock-servicenow
+test-mock-servicenow:
+	@echo "Running mock ServiceNow tests..."
+	cd mock-service-now && uv run python -m pytest tests/ || echo "No tests found for mock ServiceNow"
+	@echo "Mock ServiceNow tests completed successfully!"
 
 .PHONY: sync-evaluations
 sync-evaluations:

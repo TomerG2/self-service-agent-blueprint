@@ -6,7 +6,7 @@ from mock_servicenow.server import app
 client = TestClient(app)
 
 
-def test_root_endpoint():
+def test_root_endpoint() -> None:
     """Test the root endpoint."""
     response = client.get("/")
     assert response.status_code == 200
@@ -15,7 +15,7 @@ def test_root_endpoint():
     assert "endpoints" in data
 
 
-def test_health_endpoint():
+def test_health_endpoint() -> None:
     """Test the health check endpoint."""
     response = client.get("/health")
     assert response.status_code == 200
@@ -24,7 +24,7 @@ def test_health_endpoint():
     assert data["service"] == "mock-servicenow"
 
 
-def test_get_user_by_email_success():
+def test_get_user_by_email_success() -> None:
     """Test successful user lookup by email."""
     response = client.get(
         "/api/now/table/sys_user",
@@ -46,7 +46,7 @@ def test_get_user_by_email_success():
     assert user["sys_id"] == "1001"
 
 
-def test_get_user_by_email_not_found():
+def test_get_user_by_email_not_found() -> None:
     """Test user lookup with non-existent email."""
     response = client.get(
         "/api/now/table/sys_user",
@@ -57,7 +57,7 @@ def test_get_user_by_email_not_found():
     assert data["result"] == []
 
 
-def test_get_computers_by_user_sys_id():
+def test_get_computers_by_user_sys_id() -> None:
     """Test computer lookup by user sys_id."""
     response = client.get(
         "/api/now/table/cmdb_ci_computer",
@@ -79,7 +79,7 @@ def test_get_computers_by_user_sys_id():
     assert computer["model_id"]["display_value"] == "Latitude 7420"
 
 
-def test_create_laptop_refresh_request():
+def test_create_laptop_refresh_request() -> None:
     """Test creating a laptop refresh request."""
     request_data = {
         "sysparm_quantity": 1,
@@ -107,7 +107,7 @@ def test_create_laptop_refresh_request():
     assert result["variables"]["laptop_choices"] == "apple_mac_book_air_m_3"
 
 
-def test_create_laptop_refresh_request_missing_variables():
+def test_create_laptop_refresh_request_missing_variables() -> None:
     """Test creating a laptop refresh request with missing required variables."""
     request_data = {
         "sysparm_quantity": 1,
@@ -126,7 +126,7 @@ def test_create_laptop_refresh_request_missing_variables():
     assert "who_is_this_request_for" in response.json()["detail"]
 
 
-def test_api_key_optional():
+def test_api_key_optional() -> None:
     """Test that API key is optional for mock server."""
     # Test without API key
     response = client.get(

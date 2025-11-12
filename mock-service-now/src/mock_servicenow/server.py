@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Dict
+from typing import Any, Dict, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Security
 from fastapi.security import APIKeyHeader
@@ -34,7 +34,7 @@ app = FastAPI(
 api_key_header = APIKeyHeader(name="x-sn-apikey", auto_error=False)
 
 
-def get_api_key(api_key: str = Security(api_key_header)):
+def get_api_key(api_key: Optional[str] = Security(api_key_header)) -> Optional[str]:
     """Validate API key (optional validation for mock server)."""
     # For mock server, we accept any API key or no API key
     # In a real implementation, you would validate against actual API keys
@@ -50,7 +50,7 @@ class OrderNowRequest(BaseModel):
 
 
 @app.get("/")
-async def root():
+async def root() -> Dict[str, Any]:
     """Root endpoint."""
     return {
         "message": "Mock ServiceNow Server",
@@ -65,7 +65,7 @@ async def root():
 
 
 @app.get("/health")
-async def health():
+async def health() -> Dict[str, str]:
     """Health check endpoint."""
     return {"status": "OK", "service": "mock-servicenow"}
 
@@ -74,8 +74,8 @@ async def health():
 async def order_laptop_refresh(
     laptop_refresh_id: str,
     order_request: OrderNowRequest,
-    api_key: str = Depends(get_api_key),
-):
+    api_key: Optional[str] = Depends(get_api_key),
+) -> Dict[str, Any]:
     """Create a laptop refresh request.
 
     This endpoint mimics ServiceNow's service catalog order_now API.
@@ -120,8 +120,8 @@ async def order_laptop_refresh(
 @app.get("/api/now/table/sys_user")
 async def get_users(
     request: Request,
-    api_key: str = Depends(get_api_key),
-):
+    api_key: Optional[str] = Depends(get_api_key),
+) -> Dict[str, Any]:
     """Get users from the sys_user table.
 
     This endpoint mimics ServiceNow's Table API for sys_user.
@@ -159,8 +159,8 @@ async def get_users(
 @app.get("/api/now/table/cmdb_ci_computer")
 async def get_computers(
     request: Request,
-    api_key: str = Depends(get_api_key),
-):
+    api_key: Optional[str] = Depends(get_api_key),
+) -> Dict[str, Any]:
     """Get computers from the cmdb_ci_computer table.
 
     This endpoint mimics ServiceNow's Table API for cmdb_ci_computer.
@@ -191,7 +191,7 @@ async def get_computers(
 
 
 @app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
+async def general_exception_handler(request: Request, exc: Exception) -> HTTPException:
     """Handle unexpected exceptions."""
     logger.error(f"Unexpected error in {request.method} {request.url}: {exc}")
     return HTTPException(status_code=500, detail="Internal server error")
