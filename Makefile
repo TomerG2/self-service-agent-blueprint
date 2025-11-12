@@ -875,15 +875,14 @@ define helm_install_common
 	@$(eval GENERIC_ARGS := $(helm_generic_args))
 	@$(eval REPLICA_COUNT_ARGS := $(helm_replica_count_args))
 
-	@echo "Checking ServiceNow credentials..."
-	@if [ -n "$$SERVICENOW_INSTANCE_URL" ]; then \
-		echo "Creating ServiceNow credentials secret..."; \
+	@echo "Creating ServiceNow credentials secret..."
+	@if [ -n "$$SERVICENOW_INSTANCE_URL" ] || [ -n "$$SERVICENOW_API_KEY" ]; then \
 		kubectl create secret generic $(MAIN_CHART_NAME)-servicenow-credentials \
 			--from-literal=servicenow-instance-url="$${SERVICENOW_INSTANCE_URL:-}" \
 			--from-literal=servicenow-api-key="$${SERVICENOW_API_KEY:-}" \
 			-n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -; \
 	else \
-		echo "ℹ️  No SERVICENOW_INSTANCE_URL provided, will use mock ServiceNow defaults"; \
+		echo "⚠️  WARNING: ServiceNow credentials not provided"; \
 	fi
 
 	@echo "Cleaning up any existing jobs..."
@@ -904,10 +903,8 @@ define helm_install_common
 		--set mcp-servers.mcp-servers.self-service-agent-snow.image.repository=$(REGISTRY)/self-service-agent-snow-mcp \
 		--set mcp-servers.mcp-servers.self-service-agent-snow.image.tag=$(VERSION) \
 		--set-string mcp-servers.mcp-servers.self-service-agent-snow.env.SERVICENOW_LAPTOP_REFRESH_ID="$(SERVICENOW_LAPTOP_REFRESH_ID)" \
-		$(if $(SERVICENOW_INSTANCE_URL),\
-			--set mcp-servers.mcp-servers.self-service-agent-snow.envSecrets.SERVICENOW_INSTANCE_URL.name=$(MAIN_CHART_NAME)-servicenow-credentials \
-			--set mcp-servers.mcp-servers.self-service-agent-snow.envSecrets.SERVICENOW_INSTANCE_URL.key=servicenow-instance-url \
-		) \
+		--set mcp-servers.mcp-servers.self-service-agent-snow.envSecrets.SERVICENOW_INSTANCE_URL.name=$(MAIN_CHART_NAME)-servicenow-credentials \
+		--set mcp-servers.mcp-servers.self-service-agent-snow.envSecrets.SERVICENOW_INSTANCE_URL.key=servicenow-instance-url \
 		$(REQUEST_MANAGEMENT_ARGS) \
 		$(LOG_LEVEL_ARGS) \
 		$(GENERIC_ARGS) \
