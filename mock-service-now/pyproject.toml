@@ -24,6 +24,7 @@ dependencies = [
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.0.0",
     "requests>=2.31.0",
+    "mock-employee-data",
 ]
 
 [project.optional-dependencies]
@@ -94,6 +95,9 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 
+# Configure mypy to use source directories for local packages
+mypy_path = "../mock-employee-data/src"
+
 [tool.ruff]
 target-version = "py312"
 line-length = 88
@@ -121,3 +125,6 @@ dev = [
     "pytest>=9.0.0",
     "pytest-asyncio>=1.3.0",
 ]
+
+[tool.uv.sources]
+mock-employee-data = { path = "../mock-employee-data" }

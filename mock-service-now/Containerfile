@@ -17,6 +17,10 @@ ARG SERVICE_NAME
 COPY ${SERVICE_NAME}/pyproject.toml ${SERVICE_NAME}/uv.lock ./${SERVICE_NAME}/
 COPY ${SERVICE_NAME}/src/ ./${SERVICE_NAME}/src/
 COPY ${SERVICE_NAME}/README.md ./${SERVICE_NAME}/
+
+# Copy mock-employee-data dependency
+COPY mock-employee-data/ ./mock-employee-data/
+
 WORKDIR /app/${SERVICE_NAME}
 
 # Install dependencies
