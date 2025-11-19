@@ -4,7 +4,7 @@ import random
 from datetime import datetime
 from typing import Any, Dict, List
 
-from mock_employee_data import MOCK_EMPLOYEE_DATA
+from mock_employee_data import get_employee_data
 
 
 def generate_ticket_number() -> str:
@@ -25,7 +25,8 @@ def find_user_by_email(email: str) -> Dict[str, Any] | None:
     if not email:
         return None
 
-    user_data = MOCK_EMPLOYEE_DATA.get(email.lower())
+    employee_data_dict = get_employee_data()
+    user_data = employee_data_dict.get(email.lower())
     if not user_data:
         return None
 
@@ -56,8 +57,9 @@ def find_computers_by_user_sys_id(user_sys_id: str) -> List[Dict[str, Any]]:
         return []
 
     # Find the user data by sys_id
+    employee_data_dict = get_employee_data()
     user_data = None
-    for email, data in MOCK_EMPLOYEE_DATA.items():
+    for email, data in employee_data_dict.items():
         if data["sys_id"] == user_sys_id:
             user_data = data
             break
