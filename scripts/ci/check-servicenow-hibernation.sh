@@ -58,9 +58,9 @@ check_hibernation_status() {
 
     # Split response and HTTP code
     http_code=$(echo "$response" | tail -n1)
-    body=$(echo "$response" | head -n -1)
-
     log_info "HTTP Status Code: $http_code"
+
+    body=$(echo "$response" | head -n -1)
 
     if [[ "$http_code" == "200" ]]; then
         if echo "$body" | grep -q "Instance Hibernating page"; then
