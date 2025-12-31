@@ -52,7 +52,7 @@ check_hibernation_status() {
 
     # Make API call and capture both response and HTTP status code
     response=$(curl -s -w "\n%{http_code}" \
-        -H "Authorization: Bearer $api_key" \
+        -H "x-sn-apikey: $api_key" \
         -H "Accept: application/json" \
         "$base_url/api/now/ui/user/current_user" 2>/dev/null || echo "000")
 
