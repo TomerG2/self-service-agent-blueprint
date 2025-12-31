@@ -63,7 +63,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          ref: dev
+          ref: hibenation-mitigation
 
       - name: Check ServiceNow hibernation and wake up if needed
         shell: bash
