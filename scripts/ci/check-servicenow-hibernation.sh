@@ -81,14 +81,6 @@ check_hibernation_status() {
 wake_up_instance() {
     log_info "Waking up ServiceNow instance..."
 
-    # Check if required environment variables are set
-    if [[ -z "${SERVICENOW_DEV_PORTAL_USERNAME:-}" ]] || [[ -z "${SERVICENOW_DEV_PORTAL_PASSWORD:-}" ]]; then
-        log_error "Required environment variables not set:"
-        log_error "  SERVICENOW_DEV_PORTAL_USERNAME"
-        log_error "  SERVICENOW_DEV_PORTAL_PASSWORD"
-        return 1
-    fi
-
     # Run the servicenow-wake command
     if make servicenow-wake; then
         log_success "Wake-up command executed successfully"
@@ -143,11 +135,19 @@ wait_for_instance_awake() {
 main() {
     log_info "Starting ServiceNow PDI hibernation check..."
 
-    # Validate required environment variables
-    if [[ -z "${SERVICENOW_INSTANCE_URL:-}" ]] || [[ -z "${SERVICENOW_API_KEY:-}" ]]; then
+    # Validate all required environment variables
+    local missing_vars=()
+
+    [[ -z "${SERVICENOW_INSTANCE_URL:-}" ]] && missing_vars+=("SERVICENOW_INSTANCE_URL")
+    [[ -z "${SERVICENOW_API_KEY:-}" ]] && missing_vars+=("SERVICENOW_API_KEY")
+    [[ -z "${SERVICENOW_DEV_PORTAL_USERNAME:-}" ]] && missing_vars+=("SERVICENOW_DEV_PORTAL_USERNAME")
+    [[ -z "${SERVICENOW_DEV_PORTAL_PASSWORD:-}" ]] && missing_vars+=("SERVICENOW_DEV_PORTAL_PASSWORD")
+
+    if [[ ${#missing_vars[@]} -gt 0 ]]; then
         log_error "Required environment variables not set:"
-        log_error "  SERVICENOW_INSTANCE_URL"
-        log_error "  SERVICENOW_API_KEY"
+        for var in "${missing_vars[@]}"; do
+            log_error "  $var"
+        done
         exit 1
     fi
 
