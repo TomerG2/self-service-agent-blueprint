@@ -13,9 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-MAX_WAKE_ATTEMPTS=3
-WAKE_POLL_INTERVAL=30  # seconds
-MAX_WAKE_WAIT=600      # 10 minutes total wait time
+MAX_WAKE_POLL_ATTEMPTS=20  # maximum polling attempts to check if instance is awake
 
 # Function to log with timestamp and color
 log() {
@@ -95,40 +93,39 @@ wake_up_instance() {
 wait_for_instance_awake() {
     local base_url="$1"
     local api_key="$2"
-    local start_time=$(date +%s)
-    local end_time=$((start_time + MAX_WAKE_WAIT))
+    local attempt=1
 
-    log_info "Waiting for instance to fully wake up (max ${MAX_WAKE_WAIT}s)..."
+    log_info "Waiting for instance to fully wake up (max ${MAX_WAKE_POLL_ATTEMPTS} attempts)..."
 
-    while true; do
-        local current_time=$(date +%s)
-
-        if [[ $current_time -gt $end_time ]]; then
-            log_error "Timeout: Instance did not wake up within ${MAX_WAKE_WAIT} seconds"
-            return 1
-        fi
-
-        local elapsed=$((current_time - start_time))
-        log_info "Checking status... (elapsed: ${elapsed}s)"
+    while [[ $attempt -le $MAX_WAKE_POLL_ATTEMPTS ]]; do
+        log_info "Checking status... (attempt: ${attempt}/${MAX_WAKE_POLL_ATTEMPTS})"
 
         check_hibernation_status "$base_url" "$api_key"
         local status=$?
 
         case $status in
             0)  # Still hibernating
-                log_info "Instance still hibernating, waiting ${WAKE_POLL_INTERVAL}s..."
-                sleep $WAKE_POLL_INTERVAL
+                log_info "Instance still hibernating, attempt $attempt..."
                 ;;
             1)  # Awake
                 log_success "Instance is now fully awake!"
                 return 0
                 ;;
             2)  # Error
-                log_warning "API check failed, will retry in ${WAKE_POLL_INTERVAL}s..."
-                sleep $WAKE_POLL_INTERVAL
+                log_warning "API check failed, attempt $attempt..."
                 ;;
         esac
+
+        attempt=$((attempt + 1))
+
+        # Add a short sleep between attempts to avoid overwhelming the API
+        if [[ $attempt -le $MAX_WAKE_POLL_ATTEMPTS ]]; then
+            sleep 10
+        fi
     done
+
+    log_error "Instance did not wake up within ${MAX_WAKE_POLL_ATTEMPTS} attempts"
+    return 1
 }
 
 # Main function
@@ -167,32 +164,19 @@ main() {
         0)  # Instance is hibernating
             log_warning "Instance is hibernating - attempting to wake it up"
 
-            local attempt=1
-            while [[ $attempt -le $MAX_WAKE_ATTEMPTS ]]; do
-                log_info "Wake-up attempt $attempt/$MAX_WAKE_ATTEMPTS"
-
-                if wake_up_instance; then
-                    # Wait for instance to become fully awake
-                    if wait_for_instance_awake "$base_url" "$api_key"; then
-                        log_success "Instance successfully awakened!"
-                        exit 0
-                    else
-                        log_error "Instance wake-up timed out on attempt $attempt"
-                        attempt=$((attempt + 1))
-                    fi
+            if wake_up_instance; then
+                # Wait for instance to become fully awake
+                if wait_for_instance_awake "$base_url" "$api_key"; then
+                    log_success "Instance successfully awakened!"
+                    exit 0
                 else
-                    log_error "Wake-up command failed on attempt $attempt"
-                    attempt=$((attempt + 1))
+                    log_error "Instance failed to wake up within the polling attempts"
+                    exit 1
                 fi
-
-                if [[ $attempt -le $MAX_WAKE_ATTEMPTS ]]; then
-                    log_info "Waiting before next attempt..."
-                    sleep 30
-                fi
-            done
-
-            log_error "Failed to wake up instance after $MAX_WAKE_ATTEMPTS attempts"
-            exit 1
+            else
+                log_error "Wake-up command failed"
+                exit 1
+            fi
             ;;
         1)  # Instance is awake
             log_success "Instance is already awake - no action needed"
