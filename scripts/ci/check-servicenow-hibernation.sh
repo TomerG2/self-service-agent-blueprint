@@ -94,6 +94,7 @@ wait_for_instance_awake() {
     local base_url="$1"
     local api_key="$2"
     local attempt=1
+    local delay=5
 
     log_info "Waiting for instance to fully wake up (max ${MAX_WAKE_POLL_ATTEMPTS} attempts)..."
 
@@ -120,7 +121,8 @@ wait_for_instance_awake() {
 
         # Add a short sleep between attempts to avoid overwhelming the API
         if [[ $attempt -le $MAX_WAKE_POLL_ATTEMPTS ]]; then
-            sleep 10
+            sleep "$delay"
+            delay=$(( delay + 5 ))
         fi
     done
 
