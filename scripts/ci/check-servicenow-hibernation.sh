@@ -119,7 +119,7 @@ wait_for_instance_awake() {
                 log_warning "API check failed, attempt $attempt..."
                 ;;
             3)  # Instance is waking up
-                log_warning "The instance is waking up, attempt $attempt..."
+                log_info "The instance is waking up, attempt $attempt..."
                 ;;
         esac
 
