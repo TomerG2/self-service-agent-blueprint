@@ -68,6 +68,9 @@ check_hibernation_status() {
             log_success "Instance is awake and responding"
             return 1  # Awake
         fi
+    elif [[ "$http_code" == "502" ]]; then
+        log_warning "Instance is waking up, not ready yet"
+        return 3  # Waking up
     else
         log_error "API call failed with HTTP $http_code"
         log_error "Response: $body"
@@ -114,6 +117,9 @@ wait_for_instance_awake() {
                 ;;
             2)  # Error
                 log_warning "API check failed, attempt $attempt..."
+                ;;
+            3)  # Instance is waking up
+                log_warning "The instance is waking up, attempt $attempt..."
                 ;;
         esac
 
