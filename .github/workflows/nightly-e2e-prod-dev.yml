@@ -63,7 +63,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          ref: hibenation-mitigation # TODO change this back to dev
+          ref: dev
 
       - name: Prepare Runner
         uses: ./.github/actions/prepare-runner
