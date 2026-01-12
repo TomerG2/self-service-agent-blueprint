@@ -1,0 +1,38 @@
+name: Quick Hibernation Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  quick-hibernation-test:
+    name: Quick hibernation script test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15  # Prevent long-running jobs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.6.17"
+          python-version: "3.12"
+
+      - name: Quick hibernation check
+        shell: bash
+        env:
+          SERVICENOW_INSTANCE_URL: ${{ secrets.SERVICENOW_INSTANCE_URL }}
+          SERVICENOW_API_KEY: ${{ secrets.SERVICENOW_API_KEY }}
+          SERVICENOW_DEV_PORTAL_USERNAME: ${{ secrets.SERVICENOW_DEV_PORTAL_USERNAME }}
+          SERVICENOW_DEV_PORTAL_PASSWORD: ${{ secrets.SERVICENOW_DEV_PORTAL_PASSWORD }}
+        run: |
+          echo "⚡ Quick hibernation check starting..."
+
+          # Install dependencies quickly
+          make servicenow-wake-install
+
+          # Run hibernation check
+          ./scripts/ci/check-servicenow-hibernation.sh
+
+          echo "✅ Quick hibernation check completed!"
