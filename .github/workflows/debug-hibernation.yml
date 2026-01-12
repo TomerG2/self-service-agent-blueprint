@@ -1,0 +1,208 @@
+name: Debug ServiceNow Hibernation
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_level:
+        description: 'Enable debug output'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+  # You can also trigger via schedule for testing
+  # schedule:
+  #   - cron: '0 */4 * * *'  # Every 4 hours for testing
+
+jobs:
+  debug-hibernation:
+    name: Debug ServiceNow hibernation check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate ServiceNow secrets
+        shell: bash
+        env:
+          SERVICENOW_INSTANCE_URL: ${{ secrets.SERVICENOW_INSTANCE_URL }}
+          SERVICENOW_API_KEY: ${{ secrets.SERVICENOW_API_KEY }}
+          SERVICENOW_DEV_PORTAL_USERNAME: ${{ secrets.SERVICENOW_DEV_PORTAL_USERNAME }}
+          SERVICENOW_DEV_PORTAL_PASSWORD: ${{ secrets.SERVICENOW_DEV_PORTAL_PASSWORD }}
+        run: |
+          echo "🔍 Validating ServiceNow secrets..."
+
+          missing_vars=()
+          [[ -z "${SERVICENOW_INSTANCE_URL}" ]] && missing_vars+=("SERVICENOW_INSTANCE_URL")
+          [[ -z "${SERVICENOW_API_KEY}" ]] && missing_vars+=("SERVICENOW_API_KEY")
+          [[ -z "${SERVICENOW_DEV_PORTAL_USERNAME}" ]] && missing_vars+=("SERVICENOW_DEV_PORTAL_USERNAME")
+          [[ -z "${SERVICENOW_DEV_PORTAL_PASSWORD}" ]] && missing_vars+=("SERVICENOW_DEV_PORTAL_PASSWORD")
+
+          if [[ ${#missing_vars[@]} -gt 0 ]]; then
+            echo "❌ Missing required secrets:"
+            for var in "${missing_vars[@]}"; do
+              echo "  - $var"
+            done
+            exit 1
+          fi
+
+          echo "✅ All required secrets are configured"
+          echo "📊 Instance URL: ${SERVICENOW_INSTANCE_URL}"
+          echo "📊 Portal Username: ${SERVICENOW_DEV_PORTAL_USERNAME}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: debug-hibernation  # Use current branch or change to dev/main as needed
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.6.17"
+          python-version: "3.12"
+
+      - name: Enable debug output
+        if: ${{ inputs.debug_level == 'true' }}
+        shell: bash
+        run: |
+          echo "🐛 Debug mode enabled"
+          echo "DEBUG=1" >> $GITHUB_ENV
+          echo "RUNNER_DEBUG=1" >> $GITHUB_ENV
+
+      - name: Install ServiceNow automation dependencies
+        shell: bash
+        run: |
+          echo "📦 Installing ServiceNow automation dependencies..."
+          cd scripts/servicenow-bootstrap && uv sync
+          echo "✅ ServiceNow automation dependencies installed successfully!"
+
+      - name: Install Playwright browsers
+        shell: bash
+        run: |
+          echo "🎭 Installing Playwright browsers..."
+          cd scripts/servicenow-bootstrap && uv run playwright install chromium
+          echo "✅ Playwright browsers installed successfully!"
+
+      - name: Test hibernation status check (API only)
+        shell: bash
+        env:
+          SERVICENOW_INSTANCE_URL: ${{ secrets.SERVICENOW_INSTANCE_URL }}
+          SERVICENOW_API_KEY: ${{ secrets.SERVICENOW_API_KEY }}
+        run: |
+          echo "🔍 Testing hibernation status check (API only)..."
+
+          base_url="${SERVICENOW_INSTANCE_URL%/}"
+          api_endpoint="${base_url}/api/now/ui/user/current_user"
+
+          echo "📊 Testing API endpoint: ${api_endpoint}"
+
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "x-sn-apikey: $SERVICENOW_API_KEY" \
+            -H "Accept: application/json" \
+            "$api_endpoint" 2>/dev/null || echo "000")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "📊 HTTP Status Code: $http_code"
+
+          if [[ "$http_code" == "200" ]]; then
+            if echo "$body" | grep -q "Instance Hibernating page"; then
+              echo "😴 Instance is hibernating"
+              echo "hibernation_status=hibernating" >> $GITHUB_ENV
+            else
+              echo "✅ Instance is awake and responding"
+              echo "hibernation_status=awake" >> $GITHUB_ENV
+            fi
+          elif [[ "$http_code" == "502" ]]; then
+            echo "⏳ Instance is waking up, not ready yet"
+            echo "hibernation_status=waking" >> $GITHUB_ENV
+          else
+            echo "❌ API call failed with HTTP $http_code"
+            echo "🔍 Response: $body"
+            echo "hibernation_status=error" >> $GITHUB_ENV
+          fi
+
+      - name: Test wake-up functionality (if hibernating)
+        if: env.hibernation_status == 'hibernating'
+        shell: bash
+        env:
+          SERVICENOW_DEV_PORTAL_USERNAME: ${{ secrets.SERVICENOW_DEV_PORTAL_USERNAME }}
+          SERVICENOW_DEV_PORTAL_PASSWORD: ${{ secrets.SERVICENOW_DEV_PORTAL_PASSWORD }}
+        run: |
+          echo "🚀 Testing wake-up functionality..."
+
+          # Test the Python wake-up script directly
+          cd scripts/servicenow-bootstrap
+
+          echo "🎭 Running ServiceNow wake-up script..."
+          if uv run python -m servicenow_bootstrap.wake_up_pdi; then
+            echo "✅ Wake-up command executed successfully"
+          else
+            echo "❌ Wake-up command failed"
+            exit 1
+          fi
+
+      - name: Run full hibernation check script
+        shell: bash
+        env:
+          SERVICENOW_INSTANCE_URL: ${{ secrets.SERVICENOW_INSTANCE_URL }}
+          SERVICENOW_API_KEY: ${{ secrets.SERVICENOW_API_KEY }}
+          SERVICENOW_DEV_PORTAL_USERNAME: ${{ secrets.SERVICENOW_DEV_PORTAL_USERNAME }}
+          SERVICENOW_DEV_PORTAL_PASSWORD: ${{ secrets.SERVICENOW_DEV_PORTAL_PASSWORD }}
+        run: |
+          echo "🔄 Running full hibernation check script..."
+          ./scripts/ci/check-servicenow-hibernation.sh
+
+      - name: Test ServiceNow API after hibernation check
+        shell: bash
+        env:
+          SERVICENOW_INSTANCE_URL: ${{ secrets.SERVICENOW_INSTANCE_URL }}
+          SERVICENOW_API_KEY: ${{ secrets.SERVICENOW_API_KEY }}
+        run: |
+          echo "🧪 Testing ServiceNow API functionality..."
+
+          base_url="${SERVICENOW_INSTANCE_URL%/}"
+
+          # Test multiple endpoints to ensure the instance is fully functional
+          endpoints=(
+            "/api/now/ui/user/current_user"
+            "/api/now/table/sys_user?sysparm_limit=1"
+          )
+
+          for endpoint in "${endpoints[@]}"; do
+            echo "📊 Testing endpoint: ${endpoint}"
+
+            response=$(curl -s -w "\n%{http_code}" \
+              -H "x-sn-apikey: $SERVICENOW_API_KEY" \
+              -H "Accept: application/json" \
+              "${base_url}${endpoint}" 2>/dev/null || echo "000")
+
+            http_code=$(echo "$response" | tail -n1)
+
+            if [[ "$http_code" == "200" ]]; then
+              echo "✅ Endpoint ${endpoint} responded successfully"
+            else
+              echo "❌ Endpoint ${endpoint} failed with HTTP ${http_code}"
+            fi
+          done
+
+      - name: Debug summary
+        if: always()
+        shell: bash
+        run: |
+          echo "📋 Debug Summary:"
+          echo "=================="
+          echo "🕒 Run completed at: $(date)"
+          echo "🌐 Instance URL: ${{ secrets.SERVICENOW_INSTANCE_URL }}"
+          echo "👤 Portal Username: ${{ secrets.SERVICENOW_DEV_PORTAL_USERNAME }}"
+
+          if [[ -n "${hibernation_status:-}" ]]; then
+            echo "😴 Initial hibernation status: ${hibernation_status}"
+          fi
+
+          echo ""
+          echo "💡 Tips for debugging:"
+          echo "- Check the 'Test hibernation status check' step for API connectivity"
+          echo "- Review the 'Run full hibernation check script' step for the complete flow"
+          echo "- Look at the 'Test ServiceNow API' step to verify instance is functional"
+          echo "- Enable debug output by setting debug_level to 'true' when triggering manually"
